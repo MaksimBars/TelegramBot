@@ -3,13 +3,12 @@ import config
 import telebot
 from telebot.types import ReplyKeyboardMarkup
 import script_db
-
-bot = telebot.TeleBot(config.token)
+from datetime import datetime
+bot = telebot.TeleBot(config.token, threaded=True)
 
 
 def log_message(message, answer):
     print("\n ----------------------------")
-    from datetime import datetime
     print(datetime.now())
     print("Message from {0} {1}. (id = {2} ) \n Text - {3}".format(message.from_user.first_name,
                                                                    message.from_user.last_name,
@@ -26,6 +25,7 @@ def command_start(message):
                      "Hello {0} i'm SlameBot.\n"
                      "Full list of commands /help".format(message.from_user.first_name),
                      reply_markup=user_markup)
+    log_message(message, 'start')
 
 
 @bot.message_handler(commands=["help"])
@@ -34,6 +34,7 @@ def help_command(message):
                      "/start -- start working with the bot.\n"
                      "/help -- list of bot commands.\n"
                      "/add -- adding words.\n")
+    log_message(message, 'help')
 
 
 @bot.message_handler(commands=["add"])
@@ -46,10 +47,14 @@ def add_command(message):
 
 def input_word(message):
     answer = "Added by"
-    script_db.add_base(message.text)
-    bot.send_message(message.from_user.id, "{} - {}".format(answer, message.text))
-    log_message(message, answer)
+    wrong = "The word is already in the database!"
+    if not script_db.search_eng_in_db(message.text):
+        script_db.add_base(message.text)
+        bot.send_message(message.from_user.id, "{} - {}".format(answer, message.text))
+        log_message(message, answer)
+    else:
+        bot.send_message(message.from_user.id, wrong)
+        log_message(message, wrong)
 
 
-if __name__ == '__main__':
-    bot.polling(none_stop=True)
+bot.polling(none_stop=False)
