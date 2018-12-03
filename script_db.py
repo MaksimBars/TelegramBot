@@ -35,7 +35,7 @@ def search_eng_in_db(word):
 
 
 def data_sampling():
-    """Функция выборки рандомной строки из базы данных.(Позже передалется под алгоритм проверки и выборки)"""
+    """Функция выборки рандомной строки из базы данных.(Позже переделается под алгоритм проверки и выборки)"""
     conn = sqlite3.connect('words.db')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM words ORDER BY RANDOM() LIMIT 1")
