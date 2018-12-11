@@ -13,11 +13,15 @@ def get_url(word):
     soup = BeautifulSoup(page.text, 'lxml')
     rus_word = soup.find('span', {'class': "t_inline_en"})  # получаем перевод слова
     transcription = soup.find('span', {'class': "transcription"})  # получаем транскрипцию
-    if not transcription:
-        phrase = soup.find('div', {'class': "block phrases"}).find_all('i')  # получаем фразу
-        phrase_string = phrase[0].text
-        phrases = phrase_string.split(';')
-        return [word, None, phrases[0], phrase_string]  # пакуем в лист без транскрипции
+    error = soup.find('div', id="word_not_found")
+    if not rus_word and not transcription:
+        error_text = error.text
+        error_date = None
+        return error_date, error_text
     else:
-        rus = rus_word.text.split(',')
-        return [word, transcription.text, rus[0], rus_word.text]  # пакуем в лист , с транскрипцией
+        if not transcription:
+            phrase = soup.find('div', {'class': "block phrases"}).find_all('i')  # получаем фразу
+            phrase_string = phrase[0].text
+            return [word, None, phrase_string]  # пакуем в лист без транскрипции
+        else:
+            return [word, transcription.text, rus_word.text]  # пакуем в лист , с транскрипцией
