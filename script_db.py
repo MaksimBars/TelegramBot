@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 import sqlite3
-import parser
 
 
-def add_base(word):
+def add_base(translate):
     """Функция добавления в базу данных транскрипцию и перевод полученую после парсинга сайта."""
-    translate = parser.get_url(word)
     conn = sqlite3.connect('words.db')
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO words (eng, transcription, rus, many_rus, properly, wrong) VALUES (?, ?, ?, ?, ?, ?)',
-                   (translate[0], translate[1], translate[2], translate[3], 0, 0))
+    cursor.execute('INSERT INTO words (eng, transcription, many_rus, properly, wrong) VALUES (?, ?, ?, ?, ?)',
+                   (translate[0], translate[1], translate[2], 0, 0))
     conn.commit()
     conn.close()
-    # cursor.execute("""CREATE TABLE words ('eng','transcription','rus','right','wrong')""")
+    # cursor.execute("""CREATE TABLE words ('eng','transcription','many_rus','properly','wrong')""")
     # conn.commit()
     # conn.close()
 
@@ -39,6 +37,7 @@ def data_sampling():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM words ORDER BY RANDOM() LIMIT 1")
     cut = cursor.fetchone()
+    conn.close()
     return cut
 
 
@@ -46,18 +45,29 @@ def search_rus_in_db(word, text):
     """Поиск по русскому слову"""
     conn = sqlite3.connect('words.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM words WHERE eng=? AND rus=?", [word, text])
+    cursor.execute("SELECT * FROM words WHERE eng=?", [word])
     count = cursor.fetchone()
-    if count:
+    rus = count[2]
+    conn.close()
+    if text in rus:
         return "Верно"
     else:
-        text = "Неверно:\n" + search_in_db(word)
+        text = "Неверно:\n" + rus
         return text
 
 
-def search_in_db(word):
+def reg_user(users_id, user_name):
     conn = sqlite3.connect('words.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM words WHERE eng=?", [word])
-    some_rus = cursor.fetchone()[3]
-    return some_rus
+    cursor.execute('INSERT INTO user_id (chat_id, name) VALUES (?, ?)', (users_id, user_name))
+    conn.commit()
+    conn.close()
+
+
+def user_id():
+    conn = sqlite3.connect('words.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_id")
+    cut = cursor.fetchall()
+    conn.close()
+    return cut
