@@ -5,6 +5,7 @@ from telebot.types import ReplyKeyboardMarkup
 import script_db
 from datetime import datetime
 import threading
+import parser
 
 bot = telebot.TeleBot(config.token, threaded=True)
 
@@ -29,6 +30,15 @@ def command_start(message):
                      "Чтобы увидеть полный список команд введи /help".format(message.from_user.first_name),
                      reply_markup=user_markup)
     log_message(message, 'start')
+
+
+@bot.message_handler(commands=["reg"])
+def reg(message):
+    """Регистрируем юзера для рассылки"""
+    user_name = message.from_user.first_name
+    user_id = message.from_user.id
+    script_db.reg_user(user_id, user_name)
+    bot.send_message(message.chat.id, "Вы добавлены в базу для рассылки слов")
 
 
 @bot.message_handler(commands=["help"])
@@ -56,9 +66,15 @@ def input_word(message):
     answer = "Добавлено слово"
     wrong = "Такое слово уже присутствует в словаре!"
     if not script_db.search_eng_in_db(message.text):
-        script_db.add_base(message.text)
-        bot.send_message(message.from_user.id, "{} - {}".format(answer, message.text))
-        log_message(message, answer)
+        translate = parser.get_url(message.text)
+        if not translate[0]:
+            error = translate[1]
+            bot.send_message(message.from_user.id, error)
+            log_message(message, error)
+        else:
+            script_db.add_base(parser.get_url(message.text))
+            bot.send_message(message.from_user.id, "{} - {}".format(answer, message.text))
+            log_message(message, answer)
     else:
         bot.send_message(message.from_user.id, wrong)
         log_message(message, wrong)
@@ -69,6 +85,7 @@ temp_word = []
 
 @bot.message_handler(commands=["rep"])
 def repeat_word(message):
+    """Команда  повторения слова."""
     text = script_db.data_sampling()[0]
     msg = bot.send_message(message.chat.id, "Введите перевод слова: " + text)
     bot.register_next_step_handler(msg, search_repeat)
@@ -77,8 +94,10 @@ def repeat_word(message):
 
 
 def search_repeat(message):
+    """Обработчик введённого слова при повторении."""
     word = temp_word[0]
-    x = script_db.search_rus_in_db(word, message.text)
+    message_text = message.text.lower()
+    x = script_db.search_rus_in_db(word, message_text)
     bot.send_message(message.from_user.id, x)
     temp_word.clear()
     log_message(message, x)
@@ -86,4 +105,3 @@ def search_repeat(message):
 
 threading.Thread(bot.polling(none_stop=True)).start()
 threading.Thread(repeat_word).start()
-
